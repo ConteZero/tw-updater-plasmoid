@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+	  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+	  "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<policyconfig>
+
+  <vendor>Tumbleweed Updater</vendor>
+  <vendor_url>https://www.contezero.com/</vendor_url>
+  <icon_name>system-software-update</icon_name>
+
+  <action id="com.contezero.zypper-dup-wrapper">
+    <description>Update Tumbleweed System</description>
+    <message>Privileges are required for system update.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/zypper-dup-wrapper</annotate>
+  </action>
+
+</policyconfig>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <entry name="checkInterval" type="Int">
+			<label>Check interval (hours)</label>
+			<default>4</default>
+        </entry>
+		<entry name="autoagreeLicenses" type="Bool">
+			<label>Auto agree with Licenses:</label>
+            <default>false</default>
+        </entry>
+		<entry name="autoresolveConflicts" type="Bool">
+			<label>Auto resolve package conflicts:</label>
+            <default>false</default>
+        </entry>
+    </group>
