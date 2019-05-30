@@ -219,15 +219,20 @@ void ZypperWrapper::checkUpdatesOutput()
 			xmlstreamreader->readNextStartElement();
 		}
 	}
-	if (promptId == "0") {
-		if (parseStep > 0) {//Auto-accept
-			parsingSummary = false;
+	if (promptId != "") {
+		if (promptId == "0") {
+			if (parseStep > 0) {//Auto-accept
+				parsingSummary = false;
+				promptInputWrite("");
+			} else {//Show summary
+				parsingSummary = true;
+				xmlstreamprompt = false;
+				parseStep = 1;
+				promptInputWrite(inputValues.last());
+			}
+		} else if (promptId != "") {
 			promptInputWrite("");
-		} else {//Show summary
-			parsingSummary = true;
-			xmlstreamprompt = false;
-			parseStep = 1;
-			promptInputWrite(inputValues.last());
+			numerrorpromptcheck++;
 		}
 		promptOptList.clear();
 	}
@@ -237,7 +242,7 @@ void ZypperWrapper::checkUpdatesOutput()
 		xmlexitcode = matchexcode.captured(1);
 		if (firstCheck && (xmlexitcode != "0")) {
 			retrycheckTimer->start();
-		} else if (xmlexitcode == "106") {//ZYPPER_EXIT_INF_REPOS_SKIPPED
+		} else if ((xmlexitcode == "106") && (numpackages == 0) && (numerrorpromptcheck == 0)) {//ZYPPER_EXIT_INF_REPOS_SKIPPED
 			emit ZypperWrapper::headerMessageWrapper(getNotificationText(10));
 			emit operationAbortedWrapper(10);
 		} else {
@@ -669,6 +674,7 @@ void ZypperWrapper::resetVars()
 	installCompletedText.clear();
 	packageTo = 0;
 	numpackages = 0;
+	numerrorpromptcheck = 0;
 	xmlstreamprompt = false;
 	parseStep = 0;
 	xmlexitcode = "-1";

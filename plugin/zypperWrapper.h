@@ -39,6 +39,7 @@ class ZypperWrapper : public QObject
 		QByteArray summarystream;
 		int packageTo;
 		int numpackages;
+		int numerrorpromptcheck;
 		int resumeType;
 		QString xmlexitcode;
 		bool autoResolveConflicts;
