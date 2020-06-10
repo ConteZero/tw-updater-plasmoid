@@ -20,6 +20,7 @@ import QtQuick 2.2
 import QtQuick.Layouts 1.1
 import QtQuick.Controls 2.5
 import org.kde.plasma.components 2.0 as PlasmaComponents
+import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.plasma.extras 2.0 as PlasmaExtras
 import org.kde.plasma.core 2.0 as PlasmaCore
 import org.kde.plasma.private.twupdater 1.0
@@ -43,7 +44,7 @@ PlasmaComponents.ListItem {
 			leftMargin: Math.round(units.gridUnit * 0.5)
 			rightMargin: Math.round(units.gridUnit * 0.5)
 		}
-		PlasmaComponents.Label {
+		PlasmaComponents3.Label {
 			id: installTextLabel
 			height: contentHeight
 			anchors {
@@ -54,7 +55,7 @@ PlasmaComponents.ListItem {
 // 			width: parent.width
 			text: installtext
 		}
-		PlasmaComponents.Label {
+		PlasmaComponents3.Label {
 			id: installTextDetailsLabel
 			height: detailsvis ? paintedHeight : 0
 			anchors {
@@ -67,7 +68,7 @@ PlasmaComponents.ListItem {
 			opacity: 0.6;
 			text: details
 		}
-		PlasmaComponents.ProgressBar {
+		PlasmaComponents3.ProgressBar {
 			id: installProgressBar
 			height: progressvis ? installProgressBar.paintedHeight : 0
 			anchors {
@@ -75,8 +76,10 @@ PlasmaComponents.ListItem {
 				right: parent.right
 			}
 			visible: progressvis
-			minimumValue: 0
-			maximumValue: 100
+// 			minimumValue: 0
+// 			maximumValue: 100
+			from: 0
+			to: 100
 			value: percentage
 		}
 	}
