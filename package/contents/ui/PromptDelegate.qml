@@ -30,7 +30,9 @@ PlasmaComponents.ListItem {
 	signal checkedPromptopt(string opt)
 
 	height: typeheader ? promptColumnHeader.height + Math.round(units.gridUnit * 0.5) : promptColumn.height + Math.round(units.gridUnit * 0.5)
-	width: parent.width
+// 	width: parent.width
+	//width: ListView.view.width
+	width: promptView.width
 	enabled: true
 	checked: typeheader ? false : containsMouse
 

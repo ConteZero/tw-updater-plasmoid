@@ -29,7 +29,9 @@ PlasmaComponents.ListItem {
     id: installDelegate
 
 	height: installColumn.contentHeight
-	width: parent.width
+// 	width: parent.width
+	//width: ListView.view.width
+	width: installView.width
 	enabled: true
     checked: infomessage ? false : containsMouse
 

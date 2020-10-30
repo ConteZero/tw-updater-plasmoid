@@ -28,7 +28,9 @@ PlasmaComponents.ListItem {
 	id: checkDelegate
 
 	height: checkColumn.height + Math.round(units.gridUnit * 0.5)
-	width: parent.width
+// 	width: parent.width
+	//width: ListView.view.width
+	width: checkView.width
 	enabled: true
 	checked: containsMouse
 
