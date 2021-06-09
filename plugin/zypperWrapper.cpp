@@ -276,8 +276,8 @@ void ZypperWrapper::checkUpdatesError(QProcess::ProcessError error)
 void ZypperWrapper::checkUpdatesStart(bool checked)
 {
 // 	qDebug() << "checkUpdatesStart " << QTime::currentTime().toString();
-	if (!checked && (QFile::exists("/tmp/twupdater-check-xml-out") || QFile::exists("/tmp/twupdater-xml-out"))) {
-		if (QFile::exists("/tmp/twupdater-check-xml-out")) {
+	if (!checked && (QFile::exists("/tmp/twupdater/twupdater-check-xml-out") || QFile::exists("/tmp/twupdater/twupdater-xml-out"))) {
+		if (QFile::exists("/tmp/twupdater/twupdater-check-xml-out")) {
 			resumeType = 1;
 		} else {
 			resumeType = 2;
@@ -286,7 +286,7 @@ void ZypperWrapper::checkUpdatesStart(bool checked)
 		connect(checkresumeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(tryResumeFinished(int, QProcess::ExitStatus)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 		connect(checkresumeProcess, SIGNAL(errorOccurred(QProcess::ProcessError)), this, SLOT(tryResumeError(QProcess::ProcessError)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 		QStringList arguments;
-		checkresumeProcess->start("/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
+		checkresumeProcess->start("/usr/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
 	} else {
 		resetVars();
 		processRunning = 1;
@@ -299,9 +299,9 @@ void ZypperWrapper::checkUpdatesStart(bool checked)
 		QStringList arguments;
 		if (resumeType == 1 ) {
 			resumeType = 0;
-			wrapperProcess->start("/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater-check-xml-out");
+			wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out");
 		} else {
-			wrapperProcess->start("/bin/sh", arguments << "-c" << "touch /tmp/twupdater-check-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper check && tail -f -n +1 /tmp/twupdater-check-xml-out");
+			wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-check-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper check && tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out");
 		}
 	}
 }
@@ -319,9 +319,9 @@ void ZypperWrapper::tryResumeFinished(int exitCode, QProcess::ExitStatus exitSta
 		}
 	} else if (exitCode == 1) {//screen session not found
 		if (resumeType == 1) {
-			QFile::remove("/tmp/twupdater-check-xml-out");
+			QFile::remove("/tmp/twupdater/twupdater-check-xml-out");
 		} else {
-			QFile::remove("/tmp/twupdater-xml-out");
+			QFile::remove("/tmp/twupdater/twupdater-xml-out");
 		}
 		resumeType = 0;
 		checkUpdatesStart(true);
@@ -352,7 +352,7 @@ void ZypperWrapper::isSessionAlive()
 	QProcess *checksessionProcess = new QProcess();
 	connect(checksessionProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(isSessionAliveFinished(int, QProcess::ExitStatus)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 	QStringList arguments;
-	checksessionProcess->start("/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
+	checksessionProcess->start("/usr/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
 }
 
 void ZypperWrapper::isSessionAliveFinished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -381,7 +381,7 @@ void ZypperWrapper::checkProcessFinished()
 // 	wrapperProcess->terminate();
 	wrapperProcess->kill();
 	aliveTimer->stop();
-	QFile::remove("/tmp/twupdater-check-xml-out");
+	QFile::remove("/tmp/twupdater/twupdater-check-xml-out");
 }
 
 void ZypperWrapper::promptInputWrite(const QString inputStr)
@@ -641,7 +641,7 @@ void ZypperWrapper::installUpdatesStart()
 	QStringList arguments;
 	if (resumeType == 2) {
 // 		xmlstreamprompt = true;
-		wrapperProcess->start("/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater-xml-out");
+		wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater/twupdater-xml-out");
 	} else {
 		QString zipperparams = "";
 		if (autoResolveConflicts) {
@@ -654,7 +654,7 @@ void ZypperWrapper::installUpdatesStart()
 		} else {
 			zipperparams = zipperparams + " 0";
 		}
-		wrapperProcess->start("/bin/sh", arguments << "-c" << "touch /tmp/twupdater-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper install" + zipperparams + " && tail -f -n +1 /tmp/twupdater-xml-out");
+		wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper install" + zipperparams + " && tail -f -n +1 /tmp/twupdater/twupdater-xml-out");
 	}
 }
 
@@ -664,7 +664,7 @@ void ZypperWrapper::installProcessFinished()
 // 	wrapperProcess->terminate();
 	wrapperProcess->kill();
 	aliveTimer->stop();
-	QFile::remove("/tmp/twupdater-xml-out");
+	QFile::remove("/tmp/twupdater/twupdater-xml-out");
 }
 
 void ZypperWrapper::resetVars()
