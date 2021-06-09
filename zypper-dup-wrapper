@@ -3,13 +3,13 @@
 
 if [ "$1" == "check" ]
 then
-	zypper --xmlout dup --force-resolution --auto-agree-with-licenses --dry-run | tee /tmp/twupdater-check-xml-out
+	zypper --xmlout dup --force-resolution --auto-agree-with-licenses --dry-run | tee /tmp/twupdater/twupdater-check-xml-out
 	exitcode="${PIPESTATUS[0]}"
 
 	# Logging
-# 	/bin/cp -p /tmp/twupdater-check-xml-out /tmp/twupdater-check-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
-	
-	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater-check-xml-out
+#	/bin/cp -p /tmp/twupdater/twupdater-check-xml-out /tmp/twupdater/twupdater-check-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+
+	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater/twupdater-check-xml-out
 elif [ "$1" == "install" ]
 then
 	param=""
@@ -21,11 +21,11 @@ then
 	then
 		param="$param --auto-agree-with-licenses"
 	fi
-	zypper --xmlout dup${param} | tee /tmp/twupdater-xml-out
+	zypper --xmlout dup${param} | tee /tmp/twupdater/twupdater-xml-out
 	exitcode="${PIPESTATUS[0]}"
-	
+
 	# Logging
-# 	/bin/cp -p /tmp/twupdater-xml-out /tmp/twupdater-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
-	
-	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater-xml-out
+#	/bin/cp -p /tmp/twupdater/twupdater-xml-out /tmp/twupdater/twupdater-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+
+	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater/twupdater-xml-out
 fi
