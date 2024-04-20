@@ -18,4 +18,9 @@
 			<label>Auto resolve package conflicts:</label>
             <default>false</default>
         </entry>
+		<entry name="enableLogging" type="Bool">
+			<label>Enable logging (on /tmp/twupdater/):</label>
+            <default>false</default>
+        </entry>
     </group>
+</kcfg>
