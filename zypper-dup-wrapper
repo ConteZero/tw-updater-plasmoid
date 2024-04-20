@@ -7,7 +7,10 @@ then
 	exitcode="${PIPESTATUS[0]}"
 
 	# Logging
-#	/bin/cp -p /tmp/twupdater/twupdater-check-xml-out /tmp/twupdater/twupdater-check-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+	if [ "$2" == "logs" ]
+	then
+		/bin/cp -p /tmp/twupdater/twupdater-check-xml-out /tmp/twupdater/twupdater-check-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+	fi
 
 	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater/twupdater-check-xml-out
 elif [ "$1" == "install" ]
@@ -25,7 +28,10 @@ then
 	exitcode="${PIPESTATUS[0]}"
 
 	# Logging
-#	/bin/cp -p /tmp/twupdater/twupdater-xml-out /tmp/twupdater/twupdater-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+	if [ "$4" == "logs" ]
+	then
+		/bin/cp -p /tmp/twupdater/twupdater-xml-out /tmp/twupdater/twupdater-xml-out_${exitcode}_$(date +%Y-%m-%d.%H%M%S).log
+	fi
 
 	echo "<exitcode>${exitcode}</exitcode>" >> /tmp/twupdater/twupdater-xml-out
 fi
