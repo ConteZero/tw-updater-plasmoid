@@ -20,8 +20,8 @@
 #include "zypperWrapper.h"
 #include <QFile>
 #include <QRegularExpressionMatch>
-// #include <QDebug>
-// #include <QTime>
+// #include <QDebug> //DEBUG
+// #include <QTime> //DEBUG
 
 // NOTE: zypper xml output has some serious limitations, the follwing code is full of hacks and workarounds and needs a huge refacoring
 
@@ -31,6 +31,7 @@ ZypperWrapper::ZypperWrapper(QObject *parent) : QObject(parent)
 	resumeType = 0;
 	autoResolveConflicts = false;
 	autoAgreeLicenses = false;
+	enableLogs = false;
 	firstCheck = true;
 	xmlstreamreader = new QXmlStreamReader();
     aliveTimer = new QTimer();
@@ -66,50 +67,55 @@ QString ZypperWrapper::getNotificationText(int type)
 	} else if (type == 2) {
 		return installCompletedText;
 	} else if (type == 10) {
-		return "Checking for updates failed: network problems";
+		return QStringLiteral("Checking for updates failed: network problems");
 	}
-	return "";
+	return QStringLiteral("");
 }
 
-void ZypperWrapper::setInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses)
+void ZypperWrapper::setInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses, bool enableLogging)
 {
 	autoResolveConflicts = autoresolveConflicts;
 	autoAgreeLicenses = autoagreeLicenses;
+	enableLogs = enableLogging;
 }
 
 void ZypperWrapper::parseXmlUpdateList()
 {
-	if (xmlstreamreader->name() == "install-summary") {
+	if (xmlstreamreader->name() == QStringLiteral("install-summary")) {
 		if (xmlstreamreader->attributes().hasAttribute("packages-to-change")) {
 			numpackages = xmlstreamreader->attributes().value("packages-to-change").toInt();
 		}
 	}
-	if (xmlstreamreader->name() == "to-install") {
+	if (xmlstreamreader->name() == QStringLiteral("to-install")) {
 		packageTo = 1;
-	} else if (xmlstreamreader->name() == "to-remove") {
+	} else if (xmlstreamreader->name() == QStringLiteral("to-remove")) {
 		packageTo = 2;
-	} else if ((xmlstreamreader->name() == "to-upgrade") || (xmlstreamreader->name() == "to-upgrade-change-arch")) {
+	} else if ((xmlstreamreader->name() == QStringLiteral("to-upgrade")) || (xmlstreamreader->name() == QStringLiteral("to-upgrade-change-arch"))) {
 		packageTo = 3;
-	} else if ((xmlstreamreader->name() == "to-downgrade") || (xmlstreamreader->name() == "to-downgrade-change-arch")) {
+	} else if ((xmlstreamreader->name() == QStringLiteral("to-downgrade")) || (xmlstreamreader->name() == QStringLiteral("to-downgrade-change-arch"))) {
 		packageTo = 4;
-	} else if ((xmlstreamreader->name() == "to-reinstall") || (xmlstreamreader->name() == "to-change-arch") || (xmlstreamreader->name() == "to-change-vendor")) {
+	} else if ((xmlstreamreader->name() == QStringLiteral("to-reinstall")) || (xmlstreamreader->name() == QStringLiteral("to-change-arch")) || (xmlstreamreader->name() == QStringLiteral("to-change-vendor"))) {
 		packageTo = 5;
 	}
-	if (xmlstreamreader->name() == "solvable") {
+	if (xmlstreamreader->name() == QStringLiteral("solvable")) {
 		int packageType = 0;
 		if (xmlstreamreader->attributes().hasAttribute("type")) {
-			if (xmlstreamreader->attributes().value("type") == "package") {
+			if (xmlstreamreader->attributes().value("type") == QStringLiteral("package")) {
 				packageType = 1;
-			} else if (xmlstreamreader->attributes().value("type") == "product") {
+			} else if (xmlstreamreader->attributes().value("type") == QStringLiteral("product")) {
 				packageType = 2;
 				//TODO: add message for product upgrade
 			}
 		}
-		QString attName = "";
-		QString attEdition = "";
-		QString attSummary = "";
+		QString attName = QStringLiteral("");
+		QString attEditionOld = QStringLiteral("");
+		QString attEdition = QStringLiteral("");
+		QString attSummary = QStringLiteral("");
 		if (xmlstreamreader->attributes().hasAttribute("name")) {
 			attName = xmlstreamreader->attributes().value("name").toString();
+		}
+		if (xmlstreamreader->attributes().hasAttribute("edition-old")) {
+			attEditionOld = xmlstreamreader->attributes().value("edition-old").toString();
 		}
 		if (xmlstreamreader->attributes().hasAttribute("edition")) {
 			attEdition = xmlstreamreader->attributes().value("edition").toString();
@@ -122,6 +128,7 @@ void ZypperWrapper::parseXmlUpdateList()
 									QVariantList{
 										packageTo,
 										attName,
+										attEditionOld,
 										attEdition,
 										attSummary
 									}
@@ -132,28 +139,28 @@ void ZypperWrapper::parseXmlUpdateList()
 
 void ZypperWrapper::parseXmlInput()
 {
-	if (xmlstreamreader->name() == "prompt") {
+	if (xmlstreamreader->name() == QStringLiteral("prompt")) {
 		if (xmlstreamreader->attributes().hasAttribute("id")) {
 			promptId = xmlstreamreader->attributes().value("id").toString();
 			promptOptList.clear();
 			promptOptList << promptId;
 			xmlstreamreader->readNextStartElement();
-			QString promptText = "";
-			if ((parseStep > 0) && (promptId != "0") && !xmlmessageList.isEmpty()) {//License Agreement
-				promptText = promptText + xmlmessageList.last() + "\n";
+			QString promptText = QStringLiteral("");
+			if ((parseStep > 0) && (promptId != QStringLiteral("0")) && !xmlmessageList.isEmpty()) {//License Agreement
+				promptText = promptText + xmlmessageList.last() + QStringLiteral("\n");
 			}
-			if (xmlstreamreader->name() == "description") {
-				promptText = promptText + xmlstreamreader->readElementText() + "\n";
+			if (xmlstreamreader->name() == QStringLiteral("description")) {
+				promptText = promptText + xmlstreamreader->readElementText() + QStringLiteral("\n");
 				xmlstreamreader->readNextStartElement();
 			}
-			if (xmlstreamreader->name() == "text") {
+			if (xmlstreamreader->name() == QStringLiteral("text")) {
 				promptText = promptText + xmlstreamreader->readElementText();
 				xmlstreamreader->readNextStartElement();
 			}
 			promptOptList << promptText;
-			QString attValue = "";
-			QString attDesc = "";
-			while (xmlstreamreader->name() == "option") {
+			QString attValue = QStringLiteral("");
+			QString attDesc = QStringLiteral("");
+			while (xmlstreamreader->name() == QStringLiteral("option")) {
 				if (!xmlstreamreader->isEndElement()) {
 					if (xmlstreamreader->attributes().hasAttribute("value")) {
 						attValue = xmlstreamreader->attributes().value("value").toString();
@@ -161,7 +168,7 @@ void ZypperWrapper::parseXmlInput()
 					promptOptList << attValue;
 					inputValues << attValue;
 					if (xmlstreamreader->attributes().hasAttribute("desc")) {
-						if (xmlstreamreader->attributes().value("desc") != "") {
+						if (xmlstreamreader->attributes().value("desc") != QStringLiteral("")) {
 							attDesc = xmlstreamreader->attributes().value("desc").toString();
 						} else {
 							attDesc = attValue;
@@ -178,7 +185,7 @@ void ZypperWrapper::parseXmlInput()
 void ZypperWrapper::checkUpdatesOutput()
 {
 	aliveTimer->start();
-	promptId = "";
+	promptId = QStringLiteral("");
 	inputValues.clear();
 	QByteArray output = wrapperProcess->readAllStandardOutput();
 	xmlstream.append(output);
@@ -192,20 +199,21 @@ void ZypperWrapper::checkUpdatesOutput()
 		xmlstreamreader->addData(output);
 	}
 	if (xmlstreamprompt) {
+		// qDebug() << "ZypperWrapper checkUpdatesOutput xmlstreamprompt " << QTime::currentTime().toString() << Qt::endl;
 		while (!xmlstreamreader->atEnd()/* && !xmlstreamreader->hasError()*/) {
 			if (xmlstreamreader->isStartElement()) {
 				parseXmlUpdateList();
-				if (xmlstreamreader->name() == "message") {
+				if (xmlstreamreader->name() == QStringLiteral("message")) {
 					if (xmlstreamreader->attributes().hasAttribute("type")) {
 // 						if ((xmlstreamreader->attributes().value("type") == "error") || (xmlstreamreader->attributes().value("type") == "warning")) {
-						if (xmlstreamreader->attributes().value("type") == "error") {
+						if (xmlstreamreader->attributes().value("type") == QStringLiteral("error")) {
 							QString errmess = xmlstreamreader->readElementText();
 							xmlmessageErrorList << errmess;
 							updatesList << QVariant::fromValue(
 									QVariantList{
 										100,
-										"",
-										"",
+										QStringLiteral(""),
+										QStringLiteral(""),
 										errmess
 									}
 								);
@@ -219,39 +227,46 @@ void ZypperWrapper::checkUpdatesOutput()
 			xmlstreamreader->readNextStartElement();
 		}
 	}
-	if (promptId != "") {
-		if (promptId == "0") {
+	if (promptId != QStringLiteral("")) {
+		if (promptId == QStringLiteral("0")) {
 			if (parseStep > 0) {//Auto-accept
 				parsingSummary = false;
-				promptInputWrite("");
+				promptInputWrite(QStringLiteral(""));
+				// qDebug() << "ZypperWrapper promptInputWrite 1 " << QTime::currentTime().toString() << " '" << QStringLiteral("") << "'" << Qt::endl;
 			} else {//Show summary
 				parsingSummary = true;
 				xmlstreamprompt = false;
 				parseStep = 1;
 				promptInputWrite(inputValues.last());
+				// qDebug() << "ZypperWrapper promptInputWrite 2 " << QTime::currentTime().toString() << " '" << inputValues.last() << "'" << Qt::endl;
 			}
-		} else if (promptId != "") {
-			promptInputWrite("");
+		} else if (promptId != QStringLiteral("")) {
+			promptInputWrite(QStringLiteral(""));
+			// qDebug() << "ZypperWrapper promptInputWrite 3 " << QTime::currentTime().toString() << " '" << QStringLiteral("") << "'" << Qt::endl;
 			numerrorpromptcheck++;
 		}
 		promptOptList.clear();
 	}
 	if (xmlstream.trimmed().endsWith("</exitcode>")) {
-		QRegularExpression reexcode("<exitcode>(.*?)<\\/exitcode>");
-		QRegularExpressionMatch matchexcode = reexcode.match(xmlstream);
+		// qDebug() << "ZypperWrapper checkUpdatesOutput </exitcode> " << QTime::currentTime().toString() << Qt::endl;
+		QRegularExpression reexcode(QStringLiteral("<exitcode>(.*?)<\\/exitcode>"));
+		// QRegularExpressionMatch matchexcode = reexcode.match(xmlstream);
+		// QRegularExpressionMatch matchexcode = reexcode.match(QString::fromRawData(xmlstream.data(), xmlstream.size());
+		// QRegularExpressionMatch matchexcode = reexcode.match(QString::fromUtf8(xmlstream.data(), xmlstream.size()));
+		QRegularExpressionMatch matchexcode = reexcode.match(QString::fromUtf8(xmlstream));
 		xmlexitcode = matchexcode.captured(1);
-		if (firstCheck && (xmlexitcode != "0")) {
+		if (firstCheck && (xmlexitcode != QStringLiteral("0"))) {
 			retrycheckTimer->start();
-		} else if ((xmlexitcode == "106") && (numpackages == 0) && (numerrorpromptcheck == 0)) {//ZYPPER_EXIT_INF_REPOS_SKIPPED
-			emit ZypperWrapper::headerMessageWrapper(getNotificationText(10));
-			emit operationAbortedWrapper(10);
+		} else if ((xmlexitcode == QStringLiteral("106")) && (numpackages == 0) && (numerrorpromptcheck == 0)) {//ZYPPER_EXIT_INF_REPOS_SKIPPED
+			Q_EMIT ZypperWrapper::headerMessageWrapper(getNotificationText(10));
+			Q_EMIT operationAbortedWrapper(10);
 		} else {
 			if (numpackages == 0) {
-				if (xmlmessageList.size() > 0) emit headerMessageWrapper(xmlmessageList.last());
+				if (xmlmessageList.size() > 0) Q_EMIT headerMessageWrapper(xmlmessageList.last());
 			} else {
-				emit ZypperWrapper::headerMessageWrapper(availableUpdatesText);
+				Q_EMIT ZypperWrapper::headerMessageWrapper(availableUpdatesText);
 			}
-			emit ZypperWrapper::checkCompletedWrapper(false);
+			Q_EMIT ZypperWrapper::checkCompletedWrapper(false);
 		}
 		firstCheck = false;
 		checkProcessFinished();
@@ -276,8 +291,8 @@ void ZypperWrapper::checkUpdatesError(QProcess::ProcessError error)
 void ZypperWrapper::checkUpdatesStart(bool checked)
 {
 // 	qDebug() << "checkUpdatesStart " << QTime::currentTime().toString();
-	if (!checked && (QFile::exists("/tmp/twupdater/twupdater-check-xml-out") || QFile::exists("/tmp/twupdater/twupdater-xml-out"))) {
-		if (QFile::exists("/tmp/twupdater/twupdater-check-xml-out")) {
+	if (!checked && (QFile::exists(QStringLiteral("/tmp/twupdater/twupdater-check-xml-out")) || QFile::exists(QStringLiteral("/tmp/twupdater/twupdater-xml-out")))) {
+		if (QFile::exists(QStringLiteral("/tmp/twupdater/twupdater-check-xml-out"))) {
 			resumeType = 1;
 		} else {
 			resumeType = 2;
@@ -286,7 +301,7 @@ void ZypperWrapper::checkUpdatesStart(bool checked)
 		connect(checkresumeProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(tryResumeFinished(int, QProcess::ExitStatus)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 		connect(checkresumeProcess, SIGNAL(errorOccurred(QProcess::ProcessError)), this, SLOT(tryResumeError(QProcess::ProcessError)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 		QStringList arguments;
-		checkresumeProcess->start("/usr/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
+		checkresumeProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\""));
 	} else {
 		resetVars();
 		processRunning = 1;
@@ -299,9 +314,15 @@ void ZypperWrapper::checkUpdatesStart(bool checked)
 		QStringList arguments;
 		if (resumeType == 1 ) {
 			resumeType = 0;
-			wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out");
+			wrapperProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out"));
 		} else {
-			wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-check-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper check && tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out");
+			QString zipperparams = QStringLiteral("");
+			if (enableLogs) {
+				zipperparams = zipperparams + QStringLiteral(" logs");
+			} else {
+				zipperparams = zipperparams + QStringLiteral(" 0");
+			}
+			wrapperProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-check-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper check") + zipperparams + QStringLiteral(" && tail -f -n +1 /tmp/twupdater/twupdater-check-xml-out"));
 		}
 	}
 }
@@ -319,14 +340,14 @@ void ZypperWrapper::tryResumeFinished(int exitCode, QProcess::ExitStatus exitSta
 		}
 	} else if (exitCode == 1) {//screen session not found
 		if (resumeType == 1) {
-			QFile::remove("/tmp/twupdater/twupdater-check-xml-out");
+			QFile::remove(QStringLiteral("/tmp/twupdater/twupdater-check-xml-out"));
 		} else {
-			QFile::remove("/tmp/twupdater/twupdater-xml-out");
+			QFile::remove(QStringLiteral("/tmp/twupdater/twupdater-xml-out"));
 		}
 		resumeType = 0;
 		checkUpdatesStart(true);
 	} else {//error
-		emit operationAbortedWrapper(-1);
+		Q_EMIT operationAbortedWrapper(-1);
 		resumeType = 0;
 	}
 }
@@ -335,7 +356,7 @@ void ZypperWrapper::tryResumeError(QProcess::ProcessError error)
 {
 	Q_UNUSED(error);
 // 	qDebug() << "tryResumeError " << QTime::currentTime().toString() << " " << error;
-	emit operationAbortedWrapper(-1);
+	Q_EMIT operationAbortedWrapper(-1);
 	resumeType = 0;
 }
 
@@ -352,7 +373,7 @@ void ZypperWrapper::isSessionAlive()
 	QProcess *checksessionProcess = new QProcess();
 	connect(checksessionProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(isSessionAliveFinished(int, QProcess::ExitStatus)), (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 	QStringList arguments;
-	checksessionProcess->start("/usr/bin/sh", arguments << "-c" << "screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\"");
+	checksessionProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("screen -list | grep \"\\.twupdater-zypper-dup[[:space:]]\""));
 }
 
 void ZypperWrapper::isSessionAliveFinished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -365,10 +386,10 @@ void ZypperWrapper::isSessionAliveFinished(int exitCode, QProcess::ExitStatus ex
 	} else if (exitCode == 1) {//screen session not found
 		if (processRunning == 1) {
 			checkProcessFinished();
-			emit operationAbortedWrapper(1);
+			Q_EMIT operationAbortedWrapper(1);
 		} else if (processRunning == 2) {
 			installProcessFinished();
-			emit operationAbortedWrapper(2);
+			Q_EMIT operationAbortedWrapper(2);
 		} else {
 			aliveTimer->stop();
 		}
@@ -381,25 +402,44 @@ void ZypperWrapper::checkProcessFinished()
 // 	wrapperProcess->terminate();
 	wrapperProcess->kill();
 	aliveTimer->stop();
-	QFile::remove("/tmp/twupdater/twupdater-check-xml-out");
+	QFile::remove(QStringLiteral("/tmp/twupdater/twupdater-check-xml-out"));
 }
 
 void ZypperWrapper::promptInputWrite(const QString inputStr)
 {
 // 	wrapperProcess->write(QString(inputStr + QString("\n")).toLatin1());
 // 	wrapperProcess->write(QString(inputStr + QString("\n")).toUtf8());
+	// QString inputStrTmp = QStringLiteral(" ''") + inputStr + QStringLiteral("''"); //DEBUG
+	// qDebug() << "ZypperWrapper promptInputWrite " << QTime::currentTime().toString() << inputStrTmp << Qt::endl;
+	// qDebug() << "ZypperWrapper promptInputWrite " << QTime::currentTime().toString() << " ''" << inputStr << "''" << Qt::endl;
 	QProcess *writeProcess = new QProcess();
-	QString sendtoscreen = "screen -S twupdater-zypper-dup -p 0 -X stuff \"" + inputStr + "^M\"";
-	writeProcess->startDetached(sendtoscreen);
+	QStringList arguments;
+	// QString sendtoscreen = QStringLiteral("screen -S twupdater-zypper-dup -p 0 -X stuff \"") + inputStr + QStringLiteral("^M\"");
+	// writeProcess->startDetached(sendtoscreen);
+	// writeProcess->startDetached(QStringLiteral("/usr/bin/screen"), arguments << QStringLiteral("-S") << QStringLiteral("twupdater-zypper-dup") << QStringLiteral("-p") << QStringLiteral("0") << QStringLiteral("-X") << QStringLiteral("stuff") << QStringLiteral("\"") + inputStr + QStringLiteral("^M\""));
+	// QString lastArg = QStringLiteral("\"") + inputStr + QStringLiteral("^M\"");
+	// writeProcess->startDetached(QStringLiteral("/usr/bin/screen"), arguments << QStringLiteral("-S") << QStringLiteral("twupdater-zypper-dup") << QStringLiteral("-p") << QStringLiteral("0") << QStringLiteral("-X") << QStringLiteral("stuff") << lastArg);
+	// writeProcess->startDetached(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("screen -S twupdater-zypper-dup -p 0 -X stuff \"^M\""));
+	writeProcess->startDetached(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("screen -S twupdater-zypper-dup -p 0 -X stuff \"") + inputStr + QStringLiteral("^M\""));
+	// writeProcess->startDetached(QStringLiteral("/usr/bin/screen"), arguments << QStringLiteral("-S") << QStringLiteral("twupdater-zypper-dup") << QStringLiteral("-p") << QStringLiteral("0") << QStringLiteral("-X") << QStringLiteral("stuff") << QStringLiteral("\"^M\""));
+	
+ //    command = "cmd /C start \"\" cmd /K cd /d \"" + (m_editor->absPath()) + "\"";
+ //    QProcess process;
+ //    QStringList arguments = QProcess::splitCommand(command);
+ //    if (arguments.isEmpty())
+ //        return;
+ //    process.setProgram(arguments.takeFirst());
+ //    process.setArgument(arguments);
+ //    process.startDetached();
 }
 
 void ZypperWrapper::searchUpdatesText()
 {
 // 	qDebug() << "searchUpdatesText " << QTime::currentTime().toString();
 	if (summarystream.trimmed().endsWith("</prompt>")) {
-		QStringList summarypart = QString::fromUtf8(summarystream).split("<prompt");
-		QStringList summarypart0 = summarypart.at(0).split("\n");
-		QRegularExpression re("^\\d.*");
+		QStringList summarypart = QString::fromUtf8(summarystream).split(QStringLiteral("<prompt"));
+		QStringList summarypart0 = summarypart.at(0).split(QStringLiteral("\n"));
+		QRegularExpression re(QStringLiteral("^\\d.*"));
 		QRegularExpressionMatch match;
 		for (int i = summarypart0.count()-1; i >= 0; i--) {
 			match = re.match(summarypart0.at(i));
@@ -408,7 +448,7 @@ void ZypperWrapper::searchUpdatesText()
 				break;
 			}
 		}
-		xmlstreamreader->addData("<prompt" + summarypart.at(1));
+		xmlstreamreader->addData(QStringLiteral("<prompt") + summarypart.at(1));
 	}
 }
 
@@ -417,7 +457,7 @@ void ZypperWrapper::installUpdatesOutput()
 // 	qDebug() << "installUpdatesOutput " << QTime::currentTime().toString();
 	bool skipPrompt = false;
 	aliveTimer->start();
-	promptId = "";
+	promptId = QStringLiteral("");
 	inputValues.clear();
 	QByteArray output = wrapperProcess->readAllStandardOutput();
 	xmlstream.append(output);
@@ -445,19 +485,19 @@ void ZypperWrapper::installUpdatesOutput()
 				parseXmlUpdateList();
 				if (resumeType > 0) {
 					resumeType = 0;
-					emit ZypperWrapper::installResumedWrapper(numpackages);
+					Q_EMIT ZypperWrapper::installResumedWrapper(numpackages);
 				}
-				if (xmlstreamreader->name() == "message") {
+				if (xmlstreamreader->name() == QStringLiteral("message")) {
 					if (xmlstreamreader->attributes().hasAttribute("type")) {
 // 						if ((xmlstreamreader->attributes().value("type") == "error") || (xmlstreamreader->attributes().value("type") == "warning")) {
-						if (xmlstreamreader->attributes().value("type") == "error") {
+						if (xmlstreamreader->attributes().value("type") == QStringLiteral("error")) {
 							QString errmess = xmlstreamreader->readElementText();
 							xmlmessageErrorList << errmess;
 							updatesList << QVariant::fromValue(
 									QVariantList{
 										100,
-										"",
-										"",
+										QStringLiteral(""),
+										QStringLiteral(""),
 										errmess
 									}
 								);
@@ -466,24 +506,26 @@ void ZypperWrapper::installUpdatesOutput()
 						}
 					}
 					//TODO: use a differnt method for message type detection
-					if ((parseStep == 1) && !xmlmessageList.last().contains("\n") && xmlmessageList.last().contains("), ")) {
+					if ((parseStep == 1) && !xmlmessageList.last().contains(QStringLiteral("\n")) && xmlmessageList.last().contains(QStringLiteral("), "))) {
 						QVariantList message;
-						QStringList messpart = xmlmessageList.last().split("), ");
-						QStringList messpart0 = messpart.at(0).split(" (");
-						QStringList messpart0nl = messpart0.at(0).split(" ");
-						message << "m1";
+						QStringList messpart = xmlmessageList.last().split(QStringLiteral("), "));
+						QStringList messpart0 = messpart.at(0).split(QStringLiteral(" ("));
+						QStringList messpart0nl = messpart0.at(0).split(QStringLiteral(" "));
+						QString messtmp = QStringLiteral("(") + messpart0.at(1) + QStringLiteral("), ") + messpart.at(1);
+						message << QStringLiteral("m1");
 						message << messpart0nl.last();
-						message << "(" + messpart0.at(1) + "), " + messpart.at(1);
-						emit installMessageWrapper(message);
+						// message << QStringLiteral("(") + messpart0.at(1) + QStringLiteral("), ") + messpart.at(1);
+						message << messtmp;
+						Q_EMIT installMessageWrapper(message);
 					} else if (parseStep >= 1) {
 						xmlmessageInstallCompletedList << xmlmessageList.last();
-						installCompletedText.append("<table><tr><td>" + xmlmessageList.last() + "</td></tr></table>");
+						installCompletedText.append(QStringLiteral("<table><tr><td>") + xmlmessageList.last() + QStringLiteral("</td></tr></table>"));
 					}
 				}
-				if ((parseStep == 1) && (xmlstreamreader->name() == "download")) {
-					QString downloadPerc = "";
-					QString downloadRate = "";
-					QString downloadDone = "";
+				if ((parseStep == 1) && (xmlstreamreader->name() == QStringLiteral("download"))) {
+					QString downloadPerc = QStringLiteral("");
+					QString downloadRate = QStringLiteral("");
+					QString downloadDone = QStringLiteral("");
 					if (xmlstreamreader->attributes().hasAttribute("percent")) {
 						downloadPerc = xmlstreamreader->attributes().value("percent").toString();
 					}
@@ -494,16 +536,16 @@ void ZypperWrapper::installUpdatesOutput()
 						downloadDone = xmlstreamreader->attributes().value("done").toString();
 					}
 					QVariantList download;
-					download << "d";
+					download << QStringLiteral("d");
 					download << downloadPerc;
 					download << downloadRate;
 					download << downloadDone;
-					emit installMessageWrapper(download);
+					Q_EMIT installMessageWrapper(download);
 				}
-				if ((parseStep >= 1) && (xmlstreamreader->name() == "progress")) {
-					QString progressName = "";
-					QString progressValue = "";
-					QString progressDone = "";
+				if ((parseStep >= 1) && (xmlstreamreader->name() == QStringLiteral("progress"))) {
+					QString progressName = QStringLiteral("");
+					QString progressValue = QStringLiteral("");
+					QString progressDone = QStringLiteral("");
 					if (xmlstreamreader->attributes().hasAttribute("name")) {
 						progressName = xmlstreamreader->attributes().value("name").toString();
 					}
@@ -514,12 +556,12 @@ void ZypperWrapper::installUpdatesOutput()
 						progressDone = xmlstreamreader->attributes().value("done").toString();
 					}
 					QVariantList progress;
-					progress << "p";
+					progress << QStringLiteral("p");
 					progress << progressName;
 					progress << progressValue;
 					progress << progressDone;
-					emit installMessageWrapper(progress);
-					if (progressDone == "1") {
+					Q_EMIT installMessageWrapper(progress);
+					if (progressDone == QStringLiteral("1")) {
 						xmlmessageInstallCompletedList.clear();
 						installCompletedText.clear();
 					}
@@ -531,82 +573,86 @@ void ZypperWrapper::installUpdatesOutput()
 			xmlstreamreader->readNextStartElement();
 		}
 	}
-	if (promptId != "") {
-		if (!parsingSummary && (promptId == "0") && (parseStep == 0)) {//start install prompt
+	if (promptId != QStringLiteral("")) {
+		if (!parsingSummary && (promptId == QStringLiteral("0")) && (parseStep == 0)) {//start install prompt
 				parsingSummary = true;
 				xmlstreamprompt = false;
 				parseStep = 1;
 				promptInputWrite(inputValues.last());
-		} else if (!parsingSummary && (promptId == "0") && (parseStep > 0)) {//notifications at the end of install process
+		} else if (!parsingSummary && (promptId == QStringLiteral("0")) && (parseStep > 0)) {//notifications at the end of install process
 			installCompletedText.clear();
-			promptInputWrite("");//auto-accept default value (do not show)
+			promptInputWrite(QStringLiteral(""));//auto-accept default value (do not show)
 		} else {
-			if ((promptId == "10") || (promptId == "1")) xmlmessageList.clear();//clear license message and conflicts
-			if ((promptId != "0") && (parseStep == 0)) {
+			if ((promptId == QStringLiteral("10")) || (promptId == QStringLiteral("1"))) xmlmessageList.clear();//clear license message and conflicts
+			if ((promptId != QStringLiteral("0")) && (parseStep == 0)) {
 				xmlstreamprompt = false;
-			} else if (parsingSummary && (promptId == "0") && (parseStep > 0)) {
+			} else if (parsingSummary && (promptId == QStringLiteral("0")) && (parseStep > 0)) {
 				xmlmessageErrorList.clear();
 				xmlmessageList.clear();
 				parsingSummary = false;
-				emit ZypperWrapper::headerMessageWrapper(availableUpdatesText);
-				emit ZypperWrapper::checkCompletedWrapper(true);
+				Q_EMIT ZypperWrapper::headerMessageWrapper(availableUpdatesText);
+				Q_EMIT ZypperWrapper::checkCompletedWrapper(true);
 			}
-			emit ZypperWrapper::installPromptWrapper(promptOptList);
+			Q_EMIT ZypperWrapper::installPromptWrapper(promptOptList);
 		}
 		promptOptList.clear();
 	}
 	if (xmlstream.trimmed().endsWith("</exitcode>")) {
-		QRegularExpression reexcode("<exitcode>(.*?)<\\/exitcode>");
-		QRegularExpressionMatch matchexcode = reexcode.match(xmlstream);
+		QRegularExpression reexcode(QStringLiteral("<exitcode>(.*?)<\\/exitcode>"));
+		// QRegularExpressionMatch matchexcode = reexcode.match(xmlstream);
+		// QRegularExpressionMatch matchexcode = reexcode.match(QString::fromUtf8(xmlstream.data(), xmlstream.size()));
+		QRegularExpressionMatch matchexcode = reexcode.match(QString::fromUtf8(xmlstream));
 		xmlexitcode = matchexcode.captured(1);
-		QRegularExpression re("<progress id=\"(.*)\" name=\"[(]([0-9]*)[\\/]\\2[)](.*)\" done=\"1\"[\\/]>");//match (xxx/xxx) pattern
-		QRegularExpressionMatch match = re.match(xmlstream);
-		if (match.hasMatch() || (xmlexitcode == "0")) {//Install completed
+		QRegularExpression re(QStringLiteral("<progress id=\"(.*)\" name=\"[(]([0-9]*)[\\/]\\2[)](.*)\" done=\"1\"[\\/]>"));//match (xxx/xxx) pattern
+		// QRegularExpressionMatch match = re.match(xmlstream);
+		// QRegularExpressionMatch match = re.match(QString::fromUtf8(xmlstream.data(), xmlstream.size()));
+		QRegularExpressionMatch match = re.match(QString::fromUtf8(xmlstream));
+		if (match.hasMatch() || (xmlexitcode == QStringLiteral("0"))) {//Install completed
 			QVariantList messageseparator;
-			messageseparator << "m2";
-			messageseparator << "\n\n\n";
-			emit installMessageWrapper(messageseparator);
+			messageseparator << QStringLiteral("m2");
+			messageseparator << QStringLiteral("\n\n\n");
+			Q_EMIT installMessageWrapper(messageseparator);
 			QVariantList message;
 			QStringListIterator messerrlistIterator(xmlmessageErrorList);
 			while (messerrlistIterator.hasNext()) {//NOTE: not necessary?
-				message << "m2";
+				message << QStringLiteral("m2");
 				QString messagestr = messerrlistIterator.next();
 				message << messagestr;
-				emit installMessageWrapper(message);
+				Q_EMIT installMessageWrapper(message);
 				message.clear();
 			}
 			QStringListIterator messlistIterator(xmlmessageInstallCompletedList);
 			while (messlistIterator.hasNext()) {
-				message << "m2";
+				message << QStringLiteral("m2");
 				QString messagestr = messlistIterator.next();
 				message << messagestr;
-				emit installMessageWrapper(message);
+				Q_EMIT installMessageWrapper(message);
 				message.clear();
 			}
-			emit installMessageWrapper(messageseparator);
-			emit ZypperWrapper::installCompletedWrapper();
+			Q_EMIT installMessageWrapper(messageseparator);
+			Q_EMIT ZypperWrapper::installCompletedWrapper();
 		} else {
 			if (xmlmessageList.isEmpty()) {//user abort, no confirm (start or license)
-				emit operationAbortedWrapper(0);
+				Q_EMIT operationAbortedWrapper(0);
 			} else {//abort install
 				QVariantList message;
 				QStringListIterator messerrlistIterator(xmlmessageErrorList);
 				while (messerrlistIterator.hasNext()) {
-					message << "m2";
+					message << QStringLiteral("m2");
 					QString messagestr = messerrlistIterator.next();
 					message << messagestr;
-					emit installMessageWrapper(message);
+					Q_EMIT installMessageWrapper(message);
 					message.clear();
 				}
 				QStringListIterator messlistIterator(xmlmessageList);
 				while (messlistIterator.hasNext()) {
-					message << "m2";
+					message << QStringLiteral("m2");
 					QString messagestr = messlistIterator.next();
 					message << messagestr;
-					emit installMessageWrapper(message);
+					Q_EMIT installMessageWrapper(message);
 					message.clear();
 				}
-				emit operationAbortedWrapper(2);
+				Q_EMIT operationAbortedWrapper(2);
 			}
 		}
 		installProcessFinished();
@@ -641,20 +687,25 @@ void ZypperWrapper::installUpdatesStart()
 	QStringList arguments;
 	if (resumeType == 2) {
 // 		xmlstreamprompt = true;
-		wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "tail -f -n +1 /tmp/twupdater/twupdater-xml-out");
+		wrapperProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("tail -f -n +1 /tmp/twupdater/twupdater-xml-out"));
 	} else {
-		QString zipperparams = "";
+		QString zipperparams = QStringLiteral("");
 		if (autoResolveConflicts) {
-			zipperparams = zipperparams + " autoresolve";
+			zipperparams = zipperparams + QStringLiteral(" autoresolve");
 		} else {
-			zipperparams = zipperparams + " 0";
+			zipperparams = zipperparams + QStringLiteral(" 0");
 		}
 		if (autoAgreeLicenses) {
-			zipperparams = zipperparams + " autolicense";
+			zipperparams = zipperparams + QStringLiteral(" autolicense");
 		} else {
-			zipperparams = zipperparams + " 0";
+			zipperparams = zipperparams + QStringLiteral(" 0");
 		}
-		wrapperProcess->start("/usr/bin/sh", arguments << "-c" << "mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper install" + zipperparams + " && tail -f -n +1 /tmp/twupdater/twupdater-xml-out");
+		if (enableLogs) {
+			zipperparams = zipperparams + QStringLiteral(" logs");
+		} else {
+			zipperparams = zipperparams + QStringLiteral(" 0");
+		}
+		wrapperProcess->start(QStringLiteral("/usr/bin/sh"), arguments << QStringLiteral("-c") << QStringLiteral("mkdir -p /tmp/twupdater && touch /tmp/twupdater/twupdater-xml-out && screen -d -m -S twupdater-zypper-dup pkexec /usr/bin/zypper-dup-wrapper install") + zipperparams + QStringLiteral(" && tail -f -n +1 /tmp/twupdater/twupdater-xml-out"));
 	}
 }
 
@@ -664,7 +715,7 @@ void ZypperWrapper::installProcessFinished()
 // 	wrapperProcess->terminate();
 	wrapperProcess->kill();
 	aliveTimer->stop();
-	QFile::remove("/tmp/twupdater/twupdater-xml-out");
+	QFile::remove(QStringLiteral("/tmp/twupdater/twupdater-xml-out"));
 }
 
 void ZypperWrapper::resetVars()
@@ -677,7 +728,7 @@ void ZypperWrapper::resetVars()
 	numerrorpromptcheck = 0;
 	xmlstreamprompt = false;
 	parseStep = 0;
-	xmlexitcode = "-1";
+	xmlexitcode = QStringLiteral("-1");
 	xmlmessageList.clear();
 	xmlmessageErrorList.clear();
 	xmlmessageInstallCompletedList.clear();

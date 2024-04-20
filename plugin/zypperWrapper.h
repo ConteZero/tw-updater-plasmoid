@@ -44,6 +44,7 @@ class ZypperWrapper : public QObject
 		QString xmlexitcode;
 		bool autoResolveConflicts;
 		bool autoAgreeLicenses;
+		bool enableLogs;
 		bool xmlstreamprompt;
 		int parseStep;
 		QStringList xmlmessageList;
@@ -73,7 +74,7 @@ class ZypperWrapper : public QObject
 		QString getNotificationText(int type);
 		QVariantList updatesList;
 
-	signals:
+	Q_SIGNALS:
 		void checkCompletedWrapper(bool install = false);
 		void installCompletedWrapper();
 		void installPromptWrapper(QVariantList promptoptlist);
@@ -82,7 +83,7 @@ class ZypperWrapper : public QObject
 		void installResumedWrapper(int numpackages);
 		void headerMessageWrapper(QString messagetext);
 		
-	private slots:
+	private Q_SLOTS:
 		void checkUpdatesOutput();
 		void checkUpdatesFinished(int exitCode, QProcess::ExitStatus exitStatus);
 		void checkUpdatesError(QProcess::ProcessError error);
@@ -95,10 +96,10 @@ class ZypperWrapper : public QObject
 		void isSessionAlive();
 		void isSessionAliveFinished(int exitCode, QProcess::ExitStatus exitStatus);
 	
-	public slots:
+	public Q_SLOTS:
 		void checkUpdatesStart(bool checked = false);
 		void installUpdatesStart();
-		void setInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses);
+		void setInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses, bool enableLogging);
 		void promptInputWrite(const QString inputStr);
 
 };

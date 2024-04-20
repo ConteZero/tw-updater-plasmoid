@@ -23,7 +23,7 @@
 
 void TwupdaterPlugin::registerTypes(const char* uri)
 {
-    Q_ASSERT(uri == QLatin1String("org.kde.plasma.private.twupdater"));
+    Q_ASSERT(QLatin1String(uri) == QLatin1String("org.kde.plasma.private.twupdater"));
 
 	qmlRegisterSingletonType<UpdaterBackend>(uri, 1, 0, "UpdaterBackend", [](QQmlEngine*, QJSEngine*) -> QObject* { return new UpdaterBackend; });
 }

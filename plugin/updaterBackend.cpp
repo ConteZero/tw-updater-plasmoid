@@ -38,8 +38,8 @@ UpdaterBackend::UpdaterBackend(QObject *parent) : QObject(parent)
 	connect(wrapper, &ZypperWrapper::operationAbortedWrapper, this, &UpdaterBackend::operationAbortedWrapperReceived, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 	connect(wrapper, &ZypperWrapper::installResumedWrapper, this, &UpdaterBackend::installResumedWrapperReceived, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
 	connect(wrapper, &ZypperWrapper::headerMessageWrapper, this, &UpdaterBackend::headerMessageWrapperReceived, (Qt::ConnectionType)(Qt::UniqueConnection | Qt::DirectConnection));
-	dbusifScreenSaver = new QDBusInterface("org.freedesktop.ScreenSaver", "/ScreenSaver", "org.freedesktop.ScreenSaver", QDBusConnection::sessionBus());
-	dbusifPower = new QDBusInterface("org.freedesktop.PowerManagement.Inhibit", "/org/freedesktop/PowerManagement", "org.freedesktop.PowerManagement.Inhibit", QDBusConnection::sessionBus());
+	dbusifScreenSaver = new QDBusInterface(QStringLiteral("org.freedesktop.ScreenSaver"), QStringLiteral("/ScreenSaver"), QStringLiteral("org.freedesktop.ScreenSaver"), QDBusConnection::sessionBus());
+	dbusifPower = new QDBusInterface(QStringLiteral("org.freedesktop.PowerManagement.Inhibit"), QStringLiteral("/org/freedesktop/PowerManagement"), QStringLiteral("org.freedesktop.PowerManagement.Inhibit"), QDBusConnection::sessionBus());
 	updatesNotificationShowed = false;
 // 	qDebug() << "UpdaterBackend Start " << QTime::currentTime().toString() << endl;
 }
@@ -61,7 +61,7 @@ Q_INVOKABLE void UpdaterBackend::checkUpdates()
 {
 	if(wrapper->isProcessRunning())
 		return;
-	emit UpdaterBackend::sendCheckUpdates();
+	Q_EMIT UpdaterBackend::sendCheckUpdates();
 }
 
 Q_INVOKABLE void UpdaterBackend::installUpdates()
@@ -69,12 +69,12 @@ Q_INVOKABLE void UpdaterBackend::installUpdates()
 	if(wrapper->isProcessRunning())
 		return;
 	inhibitor(true);
-	emit UpdaterBackend::sendInstallUpdates();
+	Q_EMIT UpdaterBackend::sendInstallUpdates();
 }
 
-Q_INVOKABLE void UpdaterBackend::installOptions(bool autoresolveConflicts, bool autoagreeLicenses)
+Q_INVOKABLE void UpdaterBackend::installOptions(bool autoresolveConflicts, bool autoagreeLicenses, bool enableLogging)
 {
-	emit UpdaterBackend::sendInstallOptions(autoresolveConflicts, autoagreeLicenses);
+	Q_EMIT UpdaterBackend::sendInstallOptions(autoresolveConflicts, autoagreeLicenses, enableLogging);
 }
 
 Q_INVOKABLE QVariantList UpdaterBackend::listCheckUpdates()
@@ -86,7 +86,7 @@ Q_INVOKABLE QVariantList UpdaterBackend::listCheckUpdates()
 Q_INVOKABLE void UpdaterBackend::promptInput(const QString inputStr)
 {
 // 	qDebug() << "promptInput " << QTime::currentTime().toString() << " " << inputStr;
-	emit UpdaterBackend::sendPromptInput(inputStr);
+	Q_EMIT UpdaterBackend::sendPromptInput(inputStr);
 }
 
 void UpdaterBackend::inhibitor(bool inhibit)
@@ -94,7 +94,7 @@ void UpdaterBackend::inhibitor(bool inhibit)
 	if (inhibit) {
 		if (dbusifScreenSaver->isValid()) {
 			cookiescreensaver = 0;
-            QDBusMessage msgreply = dbusifScreenSaver->call("Inhibit", "com.contezero.twupdater", "Installing Updates");
+            QDBusMessage msgreply = dbusifScreenSaver->call(QStringLiteral("Inhibit"), QStringLiteral("com.contezero.twupdater"), QStringLiteral("Installing Updates"));
             if (msgreply.type() == QDBusMessage::ReplyMessage) {
                 QList<QVariant> replylist = msgreply.arguments();
                 QVariant reply = replylist.first();
@@ -103,7 +103,7 @@ void UpdaterBackend::inhibitor(bool inhibit)
 		}
 		if (dbusifPower->isValid()) {
 			cookiepower = 0;
-            QDBusMessage msgreply = dbusifPower->call("Inhibit", "com.contezero.twupdater", "Installing Updates");
+            QDBusMessage msgreply = dbusifPower->call(QStringLiteral("Inhibit"), QStringLiteral("com.contezero.twupdater"), QStringLiteral("Installing Updates"));
             if (msgreply.type() == QDBusMessage::ReplyMessage) {
                 QList<QVariant> replylist = msgreply.arguments();
                 QVariant reply = replylist.first();
@@ -113,13 +113,13 @@ void UpdaterBackend::inhibitor(bool inhibit)
 	} else {
 		if (dbusifScreenSaver->isValid()) {
             if (cookiescreensaver != 0) {
-                dbusifScreenSaver->call("UnInhibit" , cookiescreensaver);
+                dbusifScreenSaver->call(QStringLiteral("UnInhibit"), cookiescreensaver);
                 cookiescreensaver = 0;
             }
 		}
 		if (dbusifPower->isValid()) {
             if (cookiepower != 0) {
-                dbusifPower->call("UnInhibit" , cookiepower);
+                dbusifPower->call(QStringLiteral("UnInhibit"), cookiepower);
                 cookiepower = 0;
             }
 		}
@@ -132,14 +132,14 @@ void UpdaterBackend::checkCompletedWrapperReceived(bool install)
 	if (!install && !updatesNotificationShowed && (wrapper->getNumpackages() > 0)) {
 		updatesNotificationShowed = true;
 		QString updatesText = wrapper->getNotificationText(1);
-		if (updatesText == "") {
+		if (updatesText == QStringLiteral("")) {
 		//TODO: add translations support
-			KNotification::event(KNotification::Notification, "Tumbleweed Updater", "Available Updates: " + QString::number(wrapper->getNumpackages()), "update-low", 0, KNotification::Persistent);
+			KNotification::event(KNotification::Notification, QStringLiteral("Tumbleweed Updater"), QStringLiteral("Available Updates: ") + QString::number(wrapper->getNumpackages()), QStringLiteral("update-low"), KNotification::Persistent);
 		} else {
-			KNotification::event(KNotification::Notification, "Tumbleweed Updater", updatesText, "update-low", 0, KNotification::Persistent);
+			KNotification::event(KNotification::Notification, QStringLiteral("Tumbleweed Updater"), updatesText, QStringLiteral("update-low"), KNotification::Persistent);
 		}
 	}
-	emit UpdaterBackend::checkCompleted(install);
+	Q_EMIT UpdaterBackend::checkCompleted(install);
 }
 
 void UpdaterBackend::installCompletedWrapperReceived()
@@ -148,25 +148,25 @@ void UpdaterBackend::installCompletedWrapperReceived()
 	inhibitor(false);
 	updatesNotificationShowed = false;
 	QString installText = wrapper->getNotificationText(2);
-	if (installText == "") {
+	if (installText == QStringLiteral("")) {
 		//TODO: add translations support
-		KNotification::event(KNotification::Notification, "Tumbleweed Updater", "Installation Completed", "update-none", 0, KNotification::Persistent);
+		KNotification::event(KNotification::Notification, QStringLiteral("Tumbleweed Updater"), QStringLiteral("Installation Completed"), QStringLiteral("update-none"), KNotification::Persistent);
 	} else {
-		KNotification::event(KNotification::Notification, "Tumbleweed Updater", installText, "update-none", 0, KNotification::Persistent);
+		KNotification::event(KNotification::Notification, QStringLiteral("Tumbleweed Updater"), installText, QStringLiteral("update-none"), KNotification::Persistent);
 	}
-	emit UpdaterBackend::installCompleted();
+	Q_EMIT UpdaterBackend::installCompleted();
 }
 
 void UpdaterBackend::installPromptWrapperReceived(QVariantList promptoptlist)
 {
 // 	qDebug() << "installPromptWrapperReceived " << QTime::currentTime().toString() << promptoptlist.length();
-	emit UpdaterBackend::installPrompt(promptoptlist);
+	Q_EMIT UpdaterBackend::installPrompt(promptoptlist);
 }
 
 void UpdaterBackend::installMessageWrapperReceived(QVariantList messagelist)
 {
 // 	qDebug() << "installMessageWrapperReceived " << QTime::currentTime().toString() << messagelist.length();
-	emit UpdaterBackend::installMessage(messagelist);
+	Q_EMIT UpdaterBackend::installMessage(messagelist);
 }
 
 void UpdaterBackend::operationAbortedWrapperReceived(int aborttype)
@@ -176,19 +176,19 @@ void UpdaterBackend::operationAbortedWrapperReceived(int aborttype)
 		inhibitor(false);
 	} else if (aborttype == 10) {
 		QString abortText = wrapper->getNotificationText(10);
-		KNotification::event(KNotification::Notification, "Tumbleweed Updater", abortText, "update-none", 0, KNotification::Persistent);
+		KNotification::event(KNotification::Notification, QStringLiteral("Tumbleweed Updater"), abortText, QStringLiteral("update-none"), KNotification::Persistent);
 	}
-	emit UpdaterBackend::operationAborted(aborttype);
+	Q_EMIT UpdaterBackend::operationAborted(aborttype);
 }
 
 void UpdaterBackend::installResumedWrapperReceived(int numpackages)
 {
 // 	qDebug() << "installResumedWrapperReceived " << QTime::currentTime().toString() << numpackages;
-	emit UpdaterBackend::installResumed(numpackages);
+	Q_EMIT UpdaterBackend::installResumed(numpackages);
 }
 
 void UpdaterBackend::headerMessageWrapperReceived(QString messagetext)
 {
 // 	qDebug() << "headerMessageWrapperReceived " << QTime::currentTime().toString() << messagetext;
-	emit UpdaterBackend::headerMessage(messagetext);
+	Q_EMIT UpdaterBackend::headerMessage(messagetext);
 }

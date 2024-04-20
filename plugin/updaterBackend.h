@@ -40,18 +40,18 @@ class UpdaterBackend : public QObject
 		explicit UpdaterBackend(QObject *parent = nullptr);
 		~UpdaterBackend();
 		
-	public slots:
+	public Q_SLOTS:
 // 		Q_INVOKABLE bool pendingStatus() const;
 		Q_INVOKABLE void checkUpdates();
 		Q_INVOKABLE void installUpdates();
-		Q_INVOKABLE void installOptions(bool autoresolveConflicts, bool autoagreeLicenses);
+		Q_INVOKABLE void installOptions(bool autoresolveConflicts, bool autoagreeLicenses, bool enableLogging);
 		Q_INVOKABLE QVariantList listCheckUpdates();
 		Q_INVOKABLE void promptInput(const QString inputStr);
 		
-	signals:
+	Q_SIGNALS:
 		void sendCheckUpdates(bool checked = false);
 		void sendInstallUpdates();
-		void sendInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses);
+		void sendInstallOptions(bool autoresolveConflicts, bool autoagreeLicenses, bool enableLogging);
 		void sendPromptInput(const QString inputStr);
 		void checkCompleted(bool install);
 		void installCompleted();
@@ -61,7 +61,7 @@ class UpdaterBackend : public QObject
 		void installResumed(int numPackages);
 		void headerMessage(QString messageText);
 
-	private slots:
+	private Q_SLOTS:
 		void checkCompletedWrapperReceived(bool install = false);
 		void installCompletedWrapperReceived();
 		void installPromptWrapperReceived(QVariantList promptoptlist);
