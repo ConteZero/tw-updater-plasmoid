@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2019 by Michele Cherici <contact@contezero.com> 
+ *   Copyright (C) 2019-2024 by Michele Cherici <contact@contezero.com>
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
  *   published by the Free Software Foundation; either version 2, or
@@ -16,86 +16,65 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import QtQuick 2.2
-import QtQuick.Layouts 1.1
-import QtQuick.Controls 1.3
-import org.kde.plasma.plasmoid 2.0
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.extras 2.0 as PlasmaExtras
-import org.kde.plasma.components 2.0 as PlasmaComponents
-import org.kde.plasma.private.twupdater 1.0
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.extras as PlasmaExtras
+import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.private.twupdater
 
-Item {
-	id: mainrep
+
+PlasmoidItem {
+	id: main
 	
 	property string appName: "Tumbleweed Updater"
     property var numupdates: 0
 	property bool buttonPromptClickable: true;
-	property bool buttonCheckUpdatesEnabled: false
+	property bool buttonCheckUpdatesEnabled: true
 	property bool buttonInstallUpdatesEnabled: false
 	property string chosenPromptOpt: ""
 	property bool numIndicator: false
 	property bool autoagreeLicenses: plasmoid.configuration.autoagreeLicenses
 	property bool autoresolveConflicts: plasmoid.configuration.autoresolveConflicts
+	property bool enableLogging: plasmoid.configuration.enableLogging
 	property int checkUpdatesInterval: plasmoid.configuration.checkInterval * 1000 * 60 * 60
 	
-	onCheckUpdatesIntervalChanged: function(){checkUpdatesTimer.interval=checkUpdatesInterval}
+	property string headerText: ""
+	property bool installScrollAreaVisible: false
+	property bool checkScrollAreaVisible: false
+	property bool promptScrollAreaVisible: false
+	property bool busyindRunning: false
+	property bool anchorPosVerticalCenter: false
 	
-	Plasmoid.icon: "update-none"
-    Plasmoid.switchWidth: units.gridUnit * 10;
-    Plasmoid.switchHeight: units.gridUnit * 10;
-
-    Plasmoid.compactRepresentation: Item {
-		PlasmaCore.IconItem {
-			id: compacticon
-			source: "update-none"
-			anchors.fill: parent
-		}
-		Rectangle {
-			id: roundrect
-			width: (numupdates > 0) ? ((numupdatestext.width * 1.3) > numupdatestext.height ? (numupdatestext.width * 1.3) : numupdatestext.height) : numupdatestext.height
-			height: numupdatestext.height
-			radius: Math.round(width * 0.5)
-			color: "#3daee9"
-			visible: (numupdates > 0) || numIndicator
-			anchors {
-				horizontalCenter: parent.horizontalCenter
-				bottom: parent.bottom
-			}
-		}
-		Text {
-			id: numupdatestext
-			text: numupdates
-			font.pointSize: 6
-			color: (numupdates > 0) ? "Black" : "transparent"
-			anchors.centerIn: roundrect
-			visible: roundrect.visible
-		}
-		MouseArea {
-			anchors.fill: parent
-			onClicked: {
-				plasmoid.expanded = !plasmoid.expanded;
-			}
-			hoverEnabled: true
-		}
-    }
+	
+	signal posViewAtEnd()
+	
+    compactRepresentation: Compact {}
+    fullRepresentation: Full {}
+	
 
     Plasmoid.status: {
-		if ((numupdates > 0) || numIndicator || busyind.running) {
+		if ((numupdates > 0) || numIndicator || busyindRunning) {
             return PlasmaCore.Types.ActiveStatus;
         }
         return PlasmaCore.Types.PassiveStatus;
     }
     
+	onCheckUpdatesIntervalChanged: function() {
+		checkUpdatesTimer.interval = checkUpdatesInterval
+	}
+
 	Connections {
 		target: UpdaterBackend
-        onCheckCompleted: populateCheckModel(install)
-        onInstallCompleted: installCompleted()
-		onInstallPrompt: populatePromptModel(promptParams)
-		onInstallMessage: populateInstallModel(messageParams)
-		onOperationAborted: abortOperation(abortType)
-		onInstallResumed: resumeInstall(numPackages)
-		onHeaderMessage: changeHeader(messageText)
+        function onCheckCompleted(install) { populateCheckModel(install) }
+        function onInstallCompleted() { installCompleted() }
+		function onInstallPrompt(promptParams) { populatePromptModel(promptParams) }
+		function onInstallMessage(messageParams) { populateInstallModel(messageParams) }
+		function onOperationAborted(abortType) { abortOperation(abortType) }
+		function onInstallResumed(numPackages) { resumeInstall(numPackages) }
+		function onHeaderMessage(messageText) { changeHeader(messageText) }
 	}
 	
 	Component.onCompleted: checkUpdatesFirst()
@@ -112,227 +91,135 @@ Item {
 		id: installListModel
 	}
 	
-    PlasmaExtras.Heading {
-        id: header
-        level: 4
-        wrapMode: Text.WordWrap
-        width: parent.width
-        text: ""
-    }
-    
-	ColumnLayout {
-        spacing: units.smallSpacing
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-            top: header.bottom
-        }
-        PlasmaComponents.BusyIndicator {
-			id: busyind
-            running: false
-            visible: running
-            Layout.preferredHeight: parent.height
-            Layout.alignment: Qt.AlignCenter
-        }
-        PlasmaExtras.ScrollArea {
-            id: checkScrollArea
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            visible: false
-            ListView {
-                id: checkView
-                clip: true
-                model: checkListModel
-                anchors.fill: parent
-                boundsBehavior: Flickable.StopAtBounds
-                delegate: CheckDelegate {}
-            }
-        }
-        PlasmaExtras.ScrollArea {
-            id: installScrollArea
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            visible: false
-            ListView {
-                id: installView
-                clip: true
-                model: installListModel
-                anchors.fill: parent
-                boundsBehavior: Flickable.StopAtBounds
-                delegate: InstallDelegate {}
-            }
-        }
-        PlasmaExtras.ScrollArea {
-            id: promptScrollArea
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            visible: false
-            ListView {
-                id: promptView
-                clip: true
-                model: promptListModel
-                anchors.fill: parent
-                boundsBehavior: Flickable.StopAtBounds
-                delegate: PromptDelegate {
-						onCheckedPromptopt: {
-							if (buttonPromptClickable) {
-								buttonPromptClickable = false;
-								chosenPromptOpt = optvalue;
-								delayButtonPromptTimer.start();
-							}
-						}
-                }
-            }
-        }
-		RowLayout {
-			id: buttons
-			Layout.alignment: Qt.AlignBottom
-			PlasmaComponents.Button {
-				id: installUpdatesButton
-				Layout.fillWidth: true
-				visible: buttonInstallUpdatesEnabled
-				text: "Install Updates"
-//	 			iconName: "update-none"
-				onClicked: function () {
-					buttonCheckUpdatesEnabled = false;
-					buttonInstallUpdatesEnabled = false;
-					installUpdates();
-				}
-			}
-			PlasmaComponents.Button {
-				id: checkUpdatesButton
-				Layout.fillWidth: true
-				visible: buttonCheckUpdatesEnabled
-				text: "Check Updates"
-// 				iconName: "view-refresh"
-				onClicked: function () {
-					buttonCheckUpdatesEnabled = false;
-					buttonInstallUpdatesEnabled = false;
-					checkUpdates();
-				}
-			}
-		}
-	}
 
 	function checkUpdatesFirst() {
 		//TODO: try to detct if network is ready instead of a generic timer delayButtonPromptTimer
-// 		checkUpdatesTimerFirst.start();
-		checkUpdates();
+		buttonCheckUpdatesEnabled = false
+		checkUpdatesTimerFirst.start()
+		// checkUpdates()
 	}
 	
 	function checkUpdates() {
-// 		header.text = "Checking Updates";
-		header.text = "";
-		installListModel.clear();
-		installScrollArea.visible = false;
-		checkScrollArea.visible = false;
-		promptScrollArea.visible = false;
-		busyind.running = true;
-		UpdaterBackend.installOptions(autoresolveConflicts, autoagreeLicenses);
-		UpdaterBackend.checkUpdates();
+// 		headerText = "Checking Updates"
+		headerText = ""
+		installListModel.clear()
+		installScrollAreaVisible = false
+		checkScrollAreaVisible = false
+		promptScrollAreaVisible = false
+		verifyScrollArea()
+		busyindRunning = true
+		UpdaterBackend.installOptions(autoresolveConflicts, autoagreeLicenses, enableLogging)
+		UpdaterBackend.checkUpdates()
 	}
 	
 	function installUpdates() {
-// 		if (checkUpdatesTimerFirst.running) checkUpdatesTimerFirst.stop();
-// 		header.text = "Installing Updates";
-		installListModel.clear();
-		installScrollArea.visible = false;
-		checkScrollArea.visible = false;
-		promptScrollArea.visible = false;
-		busyind.running = true;
-		UpdaterBackend.installOptions(autoresolveConflicts, autoagreeLicenses);
-		UpdaterBackend.installUpdates();
+// 		if (checkUpdatesTimerFirst.running) checkUpdatesTimerFirst.stop()
+// 		headerText = "Installing Updates"
+		installListModel.clear()
+		installScrollAreaVisible = false
+		checkScrollAreaVisible = false
+		promptScrollAreaVisible = false
+		verifyScrollArea()
+		busyindRunning = true
+		UpdaterBackend.installOptions(autoresolveConflicts, autoagreeLicenses, enableLogging)
+		UpdaterBackend.installUpdates()
 	}
 
 	function abortOperation(aborttype) {
-		numIndicator = true;
-		busyind.running = false;
-		installScrollArea.visible = false;
-		promptScrollArea.visible = false;
-		checkScrollArea.visible = true;
-		buttonCheckUpdatesEnabled = true;
+		numIndicator = true
+		busyindRunning = false
+		installScrollAreaVisible = false
+		promptScrollAreaVisible = false
+		checkScrollAreaVisible = true
+		buttonCheckUpdatesEnabled = true
 		if (aborttype == 0) {//user abort, no confirm
-// 			header.text = "Available Updates: " + numupdates;
-			buttonInstallUpdatesEnabled = true;
+// 			headerText = "Available Updates: " + numupdates
+			buttonInstallUpdatesEnabled = true
 		} else if (aborttype == -1) {//install resume failed
-			buttonInstallUpdatesEnabled = false;
+			buttonInstallUpdatesEnabled = false
 		} else if (aborttype == 1) {//abort check
-			buttonInstallUpdatesEnabled = false;
-			installScrollArea.visible = false;
-			checkScrollArea.visible = false;
+			buttonInstallUpdatesEnabled = false
+			installScrollAreaVisible = false
+			checkScrollAreaVisible = false
 		} else if (aborttype == 2) {//abort install
-			buttonInstallUpdatesEnabled = false;
-			installScrollArea.visible = true;
-			checkScrollArea.visible = false;
+			buttonInstallUpdatesEnabled = false
+			installScrollAreaVisible = true
+			checkScrollAreaVisible = false
 		} else if (aborttype == 10) {//abort check network
-			numIndicator = false;
-			buttonInstallUpdatesEnabled = false;
-			installScrollArea.visible = false;
-			checkScrollArea.visible = false;
+			numIndicator = false
+			buttonInstallUpdatesEnabled = false
+			installScrollAreaVisible = false
+			checkScrollAreaVisible = false
 		}
+		verifyScrollArea()
 	}
 
 	function resumeInstall(npack) {
-// 		header.text = "Installing Updates"
-		numIndicator = true;
-		numupdates = npack;
+// 		headerText = "Installing Updates"
+		numIndicator = true
+		numupdates = npack
 	}
 	
 	function changeHeader(hmess) {
-		header.text = hmess;
+		headerText = hmess
 	}
 	
 	function installCompleted() {
-// 		header.text = "Installation Completed";
-		header.text = "";
-		numupdates = 0;
-		numIndicator = false;
-		buttonCheckUpdatesEnabled = true;
-		buttonInstallUpdatesEnabled = false;
-		installView.positionViewAtEnd();
+// 		headerText = "Installation Completed";
+		headerText = ""
+		numupdates = 0
+		numIndicator = false
+		buttonCheckUpdatesEnabled = true
+		buttonInstallUpdatesEnabled = false
+		posViewAtEnd()
 	}
 
     function populateInstallModel(messageparams) {
-		var messageparamsList = messageparams;
-		var installType = messageparamsList[0];
-		var perc = 0;
-		checkScrollArea.visible = false;
-		buttonCheckUpdatesEnabled = false;
-		buttonInstallUpdatesEnabled = false;
-		busyind.running = false;
-		installScrollArea.visible = true;
+		var messageparamsList = messageparams
+		var installType = messageparamsList[0]
+		var perc = 0
+		checkScrollAreaVisible = false
+		buttonCheckUpdatesEnabled = false
+		buttonInstallUpdatesEnabled = false
+		busyindRunning = false
+		installScrollAreaVisible = true
+		verifyScrollArea()
+		var lastIndex = installListModel.count -1
 		if ((installType == "m1") || (installType == "m2")) {
-			if (installView.count >= 1) {
-				installListModel.set(installView.count - 1, {progressvis: false})
+			if (lastIndex >= 0) {
+				installListModel.set(lastIndex, {progressvis: false})
 			}
 			if (installType == "m1") {
 				installListModel.append({"installtext": messageparamsList[1], "details": messageparamsList[2], "percentage": 0, "detailsvis": true, "progressvis": true, "infomessage": false})
 			} else {
 				installListModel.append({"installtext": messageparamsList[1], "details": "", "percentage": 0, "detailsvis": false, "progressvis": false, "infomessage": true})
 			}
-			installView.positionViewAtEnd();
+			posViewAtEnd()
 		} else if (installType == "d") {
-			perc = parseInt(messageparamsList[1]);
-			if (perc < 0) perc = 0;
-			if (messageparamsList[3] == "1") perc = 100;
-			if (installListModel.get(installView.count - 1).percentage < perc) {
-				installListModel.set(installView.count - 1, {percentage: perc});
+			if (lastIndex >= 0) {
+				perc = parseInt(messageparamsList[1])
+				if (perc < 0) perc = 0
+				if (messageparamsList[3] == "1") perc = 100
+				if (installListModel.get(lastIndex).percentage < perc) {
+					installListModel.set(lastIndex, {percentage: perc})
+				}
 			}
 		} else if (installType == "p") {
 			if ((messageparamsList[2] == "") && (messageparamsList[3] == "")) {
-				if (installView.count >= 1) {
-					installListModel.set(installView.count - 1, {progressvis: false})
+				if (lastIndex >= 0) {
+					installListModel.set(lastIndex, {progressvis: false})
 				}
 				installListModel.append({"installtext": messageparamsList[1], "details": "", "percentage": 0, "detailsvis": false, "progressvis": true, "infomessage": false})
-				installView.positionViewAtEnd();
+				posViewAtEnd()
 			} else {
-				installListModel.set(installView.count - 1, {installtext: messageparamsList[1]});
-				perc = parseInt(messageparamsList[2]);
-				if (perc < 0) perc = 0;
-				if (messageparamsList[3] == "1") perc = 100;
-				if (installListModel.get(installView.count - 1).percentage < perc) {
-					installListModel.set(installView.count - 1, {percentage: perc});
+				if (lastIndex >= 0) {
+					installListModel.set(lastIndex, {installtext: messageparamsList[1]})
+					perc = parseInt(messageparamsList[2])
+					if (perc < 0) perc = 0
+					if (messageparamsList[3] == "1") perc = 100
+					if (installListModel.get(lastIndex).percentage < perc) {
+						installListModel.set(lastIndex, {percentage: perc})
+					}
 				}
 			}
 		}
@@ -340,74 +227,86 @@ Item {
 	}
 
     function populatePromptModel(promptparams) {
-		var promptparamsList = promptparams;
-// 		var debugtext = "";
-		var promptType = promptparamsList[0];
+		var promptparamsList = promptparams
+// 		var debugtext = ""
+		var promptType = promptparamsList[0]
 		if (promptType != "0") {
-			checkScrollArea.visible = false;
+			checkScrollAreaVisible = false
 		}
-		promptListModel.clear();
-		busyind.running = false;
-		installScrollArea.visible = false;
-		promptScrollArea.visible = true;
-		promptListModel.append({"typeheader": true, "promptopt": promptparamsList[1], "optvalue": ""});
+		promptListModel.clear()
+		busyindRunning = false
+		installScrollAreaVisible = false
+		promptScrollAreaVisible = true
+		verifyScrollArea()
+		promptListModel.append({"typeheader": true, "promptopt": promptparamsList[1], "optvalue": ""})
 		for (var i = 2; i < promptparamsList.length; i=i+2) {
-// 			debugtext = debugtext + " " + promptparamsList[i];
-			promptListModel.append({"typeheader": false, "promptopt": promptparamsList[i+1], "optvalue": promptparamsList[i]});
-			if ((promptType == "0") && (i == 4)) break;
+// 			debugtext = debugtext + " " + promptparamsList[i]
+			promptListModel.append({"typeheader": false, "promptopt": promptparamsList[i+1], "optvalue": promptparamsList[i]})
+			if ((promptType == "0") && (i == 4)) break
 		}
-// 		print("populatePromptModel " + promptparamsList.length + " " + promptparamsList[0] + " " + promptparamsList[1] + " " + debugtext);
+// 		print("populatePromptModel " + promptparamsList.length + " " + promptparamsList[0] + " " + promptparamsList[1] + " " + debugtext)
 	}
 
 	function populateCheckModel(installproc) {
-		busyind.running = false;
-		installScrollArea.visible = false;
-		checkScrollArea.visible = true;
-		checkListModel.clear();
+		busyindRunning = false
+		installScrollAreaVisible = false
+		checkScrollAreaVisible = true
+		verifyScrollArea()
+		checkListModel.clear()
 		var packageListTmp
-		var numPackages = 0;
-		packageListTmp = UpdaterBackend.listCheckUpdates();
-		var packageList = [];
+		var numPackages = 0
+		packageListTmp = UpdaterBackend.listCheckUpdates()
+		var packageList = []
 		for (var i = 0; i < packageListTmp.length; i++)
-			packageList[i] = packageListTmp[i].slice();
+			packageList[i] = packageListTmp[i].slice()
 		for (var i = 0; i < packageListTmp.length; i++) {
 			if (packageListTmp[i][0] == 5) {
 				for (var j = 0; j < packageList.length; j++) {
 					if ((packageList[j][0] > 0) && (packageList[j][0] < 5) && (packageList[j][1] == packageListTmp[i][1])) {
-						packageList[j][0] = 0;
-						break;
+						packageList[j][0] = 0
+						break
 					}
 				}
 			}
 		}
 		for (var i = 0; i < packageList.length; i++) {
 			if (packageList[i][0] > 0) {
-				checkListModel.append({"type": packageList[i][0], "name": packageList[i][1], "version": packageList[i][2], "summary": packageList[i][3]});
-				if (packageList[i][0] < 100) numPackages++;
+				// checkListModel.append({"type": packageList[i][0], "name": packageList[i][1], "version": packageList[i][2], "summary": packageList[i][3]})
+				checkListModel.append({"type": packageList[i][0], "name": packageList[i][1], "versionold": packageList[i][2], "version": packageList[i][3], "summary": packageList[i][4]})
+				if (packageList[i][0] < 100) numPackages++
 			}
 		}
-		numupdates = numPackages;
+		numupdates = numPackages
 		if (!installproc) {
 			buttonCheckUpdatesEnabled = true;
 			if (numupdates > 0) {
-				if (header.text == "") header.text = "Available Updates: " + numupdates;
-				numIndicator = true;
-				buttonInstallUpdatesEnabled = true;
+				if (headerText == "") headerText = "Available Updates: " + numupdates
+				numIndicator = true
+				buttonInstallUpdatesEnabled = true
 			} else {
 				numIndicator = false;
 			}
 		}
 //         print("populateCheckModel " + packageList.length + " " + numPackages)
     }
+    
+    function verifyScrollArea() {
+		var countVis = 0
+		if (checkScrollAreaVisible) countVis++
+		if (installScrollAreaVisible) countVis++
+		if (promptScrollAreaVisible) countVis++
+		anchorPosVerticalCenter = false
+		if (countVis > 1) anchorPosVerticalCenter = true
+	}
 
-// 	Timer {
-// 		id: checkUpdatesTimerFirst
-// 		interval: 60000
-// 		running: false
-// 		repeat: false
-// 		triggeredOnStart: false
-// 		onTriggered: checkUpdates()
-// 	}
+	Timer {
+		id: checkUpdatesTimerFirst
+		interval: 10000
+		running: false
+		repeat: false
+		triggeredOnStart: false
+		onTriggered: checkUpdates()
+	}
 	
 	Timer {
 		id: checkUpdatesTimer
@@ -423,12 +322,13 @@ Item {
 		interval: 200
 		repeat: false
 		onTriggered: {
-			promptListModel.clear();
-			busyind.running = true;
-			checkScrollArea.visible = false;
-			promptScrollArea.visible = false;
-			buttonPromptClickable = true;
-			UpdaterBackend.promptInput(chosenPromptOpt);
+			promptListModel.clear()
+			busyindRunning = true
+			checkScrollAreaVisible = false
+			promptScrollAreaVisible = false
+			verifyScrollArea()
+			buttonPromptClickable = true
+			UpdaterBackend.promptInput(chosenPromptOpt)
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2019 by Michele Cherici <contact@contezero.com> 
+ *   Copyright (C) 2019-2024 by Michele Cherici <contact@contezero.com> 
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
  *   published by the Free Software Foundation; either version 2, or
@@ -16,54 +16,123 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import QtQuick 2.2
-import QtQuick.Layouts 1.1
-import QtQuick.Controls 2.5
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.extras 2.0 as PlasmaExtras
-import org.kde.plasma.private.twupdater 1.0
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls as Controls
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.extras as PlasmaExtras
 
-Item {
-	id: genconfig
-    
+
+Kirigami.ScrollablePage {
+
+    id: configGeneral
+
 	property alias cfg_checkInterval: checkInterval.value
-	property alias cfg_autoagreeLicenses: licenseCheckBox.checked
-	property alias cfg_autoresolveConflicts: conflictCheckBox.checked
+	property alias cfg_autoagreeLicenses: autoagreeLicenses.checked
+	property alias cfg_autoresolveConflicts: autoresolveConflicts.checked
+	property alias cfg_enableLogging: enableLogging.checked
 
-	GridLayout {
-		id: optionsGroup
-		anchors.left: parent.left
-		anchors.right: parent.right
-		Layout.fillWidth: true
-		rowSpacing: 20
-		columnSpacing: 15
-		columns: 2
-		Label {
-			text: "Check Every (hours)"
-		}
-		SpinBox {
-			id: checkInterval
-			value: 1
-			from: 1
-			to: 999
-			Layout.alignment: Qt.AlignLeft
-			onValueChanged: cfg_checkInterval = value
-		}
-		Label {
-			text: "Auto agree with Licenses"
-		}
-		CheckBox {
-			id: licenseCheckBox
-			Layout.fillWidth: true
-			Layout.alignment: Qt.AlignLeft
-		}
-		Label {
-			text: "Auto resolve package conflicts"
-		}
-		CheckBox {
-			id: conflictCheckBox
-			Layout.fillWidth: true
-			Layout.alignment: Qt.AlignLeft
-		}
-	}
+    ColumnLayout {
+
+        anchors {
+            left: parent.left
+            top: parent.top
+            right: parent.right
+        }
+
+        Kirigami.FormLayout {
+            wideMode: false
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Check Interval"
+            }
+        }
+
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.FormData.label: "Check Every (hours): "
+                visible: true
+                Controls.SpinBox {
+					id: checkInterval
+					value: 1
+					from: 1
+					to: 999
+					Layout.alignment: Qt.AlignLeft
+					onValueChanged: cfg_checkInterval = value
+				}
+            }
+        }
+
+        Kirigami.FormLayout {
+            wideMode: false
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Options"
+            }
+        }
+
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.FormData.label: "Auto agree with Licenses: "
+                visible: true
+                Controls.CheckBox {
+                    id: autoagreeLicenses
+                    checked: false
+                }
+            }
+
+        }
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.FormData.label: "Auto resolve package conflicts: "
+                visible: true
+                Controls.CheckBox {
+                    id: autoresolveConflicts
+                    checked: false
+                }
+            }
+
+        }
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.FormData.label: "Enable logging (on /tmp/twupdater/): "
+                visible: true
+                Controls.CheckBox {
+                    id: enableLogging
+                    checked: false
+                }
+            }
+
+        }
+
+        Kirigami.FormLayout {
+            wideMode: false
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: "Info"
+            }
+        }
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.FormData.label: "In case of problems you can run the command:"
+                visible: true
+            }
+        }
+        Kirigami.FormLayout {
+            RowLayout {
+                Kirigami.SelectableLabel {
+                    text: "screen -r twupdater-zypper-dup"
+                    font.family: "monospace"
+                }
+                visible: true
+            }
+        }
+        
+    }
+
 }
+

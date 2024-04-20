@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2019 by Michele Cherici <contact@contezero.com> 
+ *   Copyright (C) 2019-2024 by Michele Cherici <contact@contezero.com> 
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
  *   published by the Free Software Foundation; either version 2, or
@@ -16,37 +16,36 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import QtQuick 2.2
-import QtQuick.Layouts 1.1
-import QtQuick.Controls 2.5
-import org.kde.plasma.components 2.0 as PlasmaComponents
-import org.kde.plasma.components 3.0 as PlasmaComponents3
-import org.kde.plasma.extras 2.0 as PlasmaExtras
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.private.twupdater 1.0
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.extras as PlasmaExtras
+import org.kde.plasma.core as PlasmaCore
 
-PlasmaComponents.ListItem {
+
+PlasmaComponents.ItemDelegate {
     id: installDelegate
 
-	height: installColumn.contentHeight
-// 	width: parent.width
-	//width: ListView.view.width
+	// height: installColumn.contentHeight
+	height: installColumn.height
 	width: installView.width
 	enabled: true
-    checked: infomessage ? false : containsMouse
+    // checked: infomessage ? false : containsMouse
 
 	Column {
 		id: installColumn
-		height: installTextLabel.height + installTextDetailsLabel.height + installProgressBar.height
+		height: installTextLabel.height + installTextDetailsLabel.height + installProgressBar.height + Math.round(Kirigami.Units.gridUnit * 0.5)
 //		height: installTextLabel.contentHeight + installTextDetailsLabel.contentHeight + installProgressBar.contentHeight
 		anchors {
 			left: parent.left
 			right: parent.right
 			top: parent.top
-			leftMargin: Math.round(units.gridUnit * 0.5)
-			rightMargin: Math.round(units.gridUnit * 0.5)
+			leftMargin: Math.round(Kirigami.Units.gridUnit * 0.5)
+			rightMargin: Math.round(Kirigami.Units.gridUnit * 0.5)
 		}
-		PlasmaComponents3.Label {
+		PlasmaComponents.Label {
 			id: installTextLabel
 			height: contentHeight
 			anchors {
@@ -57,20 +56,20 @@ PlasmaComponents.ListItem {
 // 			width: parent.width
 			text: installtext
 		}
-		PlasmaComponents3.Label {
+		PlasmaComponents.Label {
 			id: installTextDetailsLabel
-			height: detailsvis ? paintedHeight : 0
+			height: detailsvis ? installTextDetailsLabel.paintedHeight : 0
 			anchors {
 				left: parent.left
 				right: parent.right
 			}
 			visible: detailsvis
 			elide: Text.ElideRight;
-			font.pointSize: theme.smallestFont.pointSize;
+			font.pointSize: Kirigami.Theme.smallFont.pointSize
 			opacity: 0.6;
 			text: details
 		}
-		PlasmaComponents3.ProgressBar {
+		PlasmaComponents.ProgressBar {
 			id: installProgressBar
 			height: progressvis ? installProgressBar.paintedHeight : 0
 			anchors {
