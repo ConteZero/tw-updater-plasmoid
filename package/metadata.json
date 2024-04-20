@@ -1,0 +1,23 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+	            "Email": "",
+                "Name": "ConteZero"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "KDE Plasma Software Updater for openSUSE Tumbleweed",
+        "Icon": "system-software-update",
+        "Id": "com.contezero.twupdater",
+        "License": "GPL2",
+        "Name": "Tumbleweed Updater",
+        "Version": "1.0.6",
+        "Website": "https://www.contezero.com",
+        "EnabledByDefault": true
+    },
+    "X-Plasma-NotificationArea": true,
+    "X-Plasma-NotificationAreaCategory": "SystemServices",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KPackageStructure": "Plasma/Applet"
+}
