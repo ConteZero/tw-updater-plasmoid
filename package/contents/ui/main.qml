@@ -134,7 +134,22 @@ PlasmoidItem {
 		buttonCheckUpdatesEnabled = true
 		if (aborttype == 0) {//user abort, no confirm
 // 			headerText = "Available Updates: " + numupdates
-			buttonInstallUpdatesEnabled = true
+			var packageListTmp
+			var numPackages = 0
+			var errors = 0
+			packageListTmp = UpdaterBackend.listCheckUpdates()
+			for (var i = 0; i < packageListTmp.length; i++) {
+				if ((packageListTmp[i][0] >= 1) && (packageListTmp[i][0] <= 5)) {
+					numPackages++
+				}
+				if (packageListTmp[i][0] == 100) errors++
+			}
+			if (errors > 0 && numPackages == 0) {
+				populateCheckModel()
+				buttonInstallUpdatesEnabled = false
+			} else {
+				buttonInstallUpdatesEnabled = true
+			}
 		} else if (aborttype == -1) {//install resume failed
 			buttonInstallUpdatesEnabled = false
 		} else if (aborttype == 1) {//abort check
