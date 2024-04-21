@@ -214,6 +214,7 @@ void ZypperWrapper::checkUpdatesOutput()
 										100,
 										QStringLiteral(""),
 										QStringLiteral(""),
+										QStringLiteral(""),
 										errmess
 									}
 								);
@@ -496,6 +497,7 @@ void ZypperWrapper::installUpdatesOutput()
 							updatesList << QVariant::fromValue(
 									QVariantList{
 										100,
+										QStringLiteral(""),
 										QStringLiteral(""),
 										QStringLiteral(""),
 										errmess
