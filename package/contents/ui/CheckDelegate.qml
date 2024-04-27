@@ -71,7 +71,7 @@ PlasmaComponents.ItemDelegate {
 			// elide: Text.ElideRight;
 			wrapMode: Text.WordWrap
 			// text: name + "  (" + versionold + " » " + version +  ")"
-			text: name + "  (<font color=\"" + (hovered ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor) + "\">" + versionold + "</font> » <font color=\"" + (hovered ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor) + "\">" + version +  "</font>)"
+			text: name + "  (<font color=\"" + (hovered ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor) + "\">" + versionold + "</font>" + ((versionold != "") && (version != "") ? " » " : "") + "<font color=\"" + (hovered ? ((type == "2") ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor) : Kirigami.Theme.textColor) + "\">" + version +  "</font>)"
 		}
 		PlasmaComponents.Label {
 			id: summaryLabel
