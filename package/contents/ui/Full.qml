@@ -157,7 +157,7 @@ PlasmaExtras.Representation {
             anchors.fill: parent
             color: "transparent"
         }
-        anchors.top: anchorPosVerticalCenter ? parent.verticalCenter : parent.top
+        anchors.top: anchorPosVerticalCenter ? parent.verticalCenter : headerSeparator.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
