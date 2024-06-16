@@ -12,7 +12,7 @@
         "Id": "com.contezero.twupdater",
         "License": "GPL2",
         "Name": "Tumbleweed Updater",
-        "Version": "1.0.6",
+        "Version": "1.0.7",
         "Website": "https://www.contezero.com",
         "EnabledByDefault": true
     },
