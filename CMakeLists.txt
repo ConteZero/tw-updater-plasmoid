@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 4.0)
 
 project(tw-updater-plasmoid VERSION 0.3.2)
 add_definitions(-DPROJECT_VERSION="\\\"${PROJECT_VERSION}\\\"")
 
-set(QT_MIN_VERSION "6.7.0")
-set(KF6_MIN_VERSION "6.10.0")
+set(QT_MIN_VERSION "6.8.0")
+set(KF6_MIN_VERSION "6.14.0")
 
 
 find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
